@@ -1,23 +1,32 @@
-from views.admin import admin_bp
-from views.client import client_bp
-from views.authentication import authentication_bp
 from flask import Flask
+from config import Config
+from models import db, init_db
 from flask_login import LoginManager
+from views.auth import auth_bp
+from views.client import client_bp
+from views.admin import admin_bp
+
 
 app = Flask(__name__)
+app.config.from_object(Config)
 
+login_manager = LoginManager(app)
+login_manager.login_view = 'auth.login'
 
-
-app.register_blueprint(admin_bp)
-app.register_blueprint(client_bp)
-app.register_blueprint(authentication_bp)
-
-
-login_manager = LoginManager()
+init_db(app) 
 login_manager.init_app(app)
-login_manager.login_view = 'authentication.login'
+    
+
+app.register_blueprint(auth_bp)
+app.register_blueprint(client_bp, url_prefix='/client')
+app.register_blueprint(admin_bp, url_prefix='/admin')
 
 
-# running the application @ port 5000
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(int(user_id))
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+ 
+    app.run(host='0.0.0.0', port=5000, debug=True)
